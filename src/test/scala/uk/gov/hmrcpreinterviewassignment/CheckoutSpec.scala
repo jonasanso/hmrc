@@ -18,12 +18,12 @@ class CheckoutSpec extends Specification {
       Checkout.totalCost(List("orange")) must beEqualTo(25)
     }
 
-    "be 180p for 3 apples" in {
-      Checkout.totalCost(List("apple", "apple", "apple")) must beEqualTo(180)
+    "be 180p minus 60p of discount = 120p for 3 apples" in {
+      Checkout.totalCost(List("apple", "apple", "apple")) must beEqualTo(120)
     }
 
-    "be 205p for 3 aples and one orange" in {
-      Checkout.totalCost(List("apple", "apple", "orange", "apple")) must beEqualTo(205)
+    "be 205p - 60p of discount = 145p for 3 apples and one orange" in {
+      Checkout.totalCost(List("apple", "apple", "orange", "apple")) must beEqualTo(145)
     }
 
   }
