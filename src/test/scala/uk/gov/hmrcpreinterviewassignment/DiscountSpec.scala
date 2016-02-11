@@ -1,55 +1,37 @@
 package uk.gov.hmrcpreinterviewassignment
 
-import org.specs2.mutable._
+import org.scalacheck.{Gen, Prop}
+import org.specs2.ScalaCheck
+import org.specs2.mutable.Specification
 
-
-class DiscountSpec extends Specification {
-
-  "ApplesDiscount" should {
-    "be 0 for an empty shopping cart" in {
-      ApplesDiscount.calculate(List()) must beEqualTo(0)
-    }
-
-    "be 0 for one apple" in {
-      ApplesDiscount.calculate(List(APPLE)) must beEqualTo(0)
-    }
-
-    "be 60p for 2 or 3 apples" in {
-      ApplesDiscount.calculate(List(APPLE, APPLE)) must beEqualTo(60)
-      ApplesDiscount.calculate(List(APPLE, APPLE, APPLE)) must beEqualTo(60)
-    }
-
-    "be 120p for 4 apples" in {
-      ApplesDiscount.calculate(List(APPLE, APPLE, APPLE, APPLE)) must beEqualTo(120)
-    }
-  }
-
-  "OrangesDiscount" should {
-    "be 0 for an empty shopping cart" in {
-      OrangesDiscount.calculate(List()) must beEqualTo(0)
-    }
-
-    "be 0p for one or two orange" in {
-      OrangesDiscount.calculate(List(ORANGE)) must beEqualTo(0)
-      OrangesDiscount.calculate(List(ORANGE, ORANGE)) must beEqualTo(0)
-    }
-
-
-    "be 25p for 3 or 4 or 5 oranges" in {
-      OrangesDiscount.calculate(List(ORANGE, ORANGE, ORANGE)) must beEqualTo(25)
-      OrangesDiscount.calculate(List(ORANGE, ORANGE, ORANGE, ORANGE)) must beEqualTo(25)
-      OrangesDiscount.calculate(List(ORANGE, ORANGE, ORANGE, ORANGE, ORANGE)) must beEqualTo(25)
-    }
-  }
-
+class DiscountSpec extends Specification with ScalaCheck {
+  val itemsGenerator = Gen.sized { size => Gen.listOfN(size, Gen.oneOf(APPLE, ORANGE)) }
 
   "Discount calculate totalDiscount" should {
-    "be 0 for an empty shopping cart" in {
-      Discount.totalDiscount(List()) must beEqualTo(0)
+    "is the sum of the discount for the apples and the discount for the oranges" in {
+      Prop.forAll(itemsGenerator) { items: List[Item] =>
+        Discount.totalDiscount(items) mustEqual Discount.totalDiscount(items.filter(_ == APPLE)) + Discount.totalDiscount(items.filter(_ == ORANGE))
+      }
     }
 
-    "be 85p for 2 apples and 3 oranges" in {
-      Discount.totalDiscount(List(APPLE, APPLE, ORANGE, ORANGE, ORANGE)) must beEqualTo(85)
+    "of a basket of apples is the number of apples pairs by the price of an apple (buy one, get one free) " in {
+      val applesGenerator = Gen.sized { size => List.fill(size)(APPLE) }
+      Prop.forAll(applesGenerator) { apples: List[Item] =>
+        Discount.totalDiscount(apples) mustEqual apples.size / 2 * APPLE.price
+      }
+    }
+
+    "of a basket of oranges is the number of oranges trios by the price of an orange (3 for the price of 2)" in {
+      val orangesGenerator = Gen.sized { size => List.fill(size)(ORANGE) }
+      Prop.forAll(orangesGenerator) { apples: List[Item] =>
+        Discount.totalDiscount(apples) mustEqual apples.size / 3 * 25
+      }
+    }
+
+    "is independent of the order of the items" in {
+      Prop.forAll(itemsGenerator) { items: List[Item] =>
+        Discount.totalDiscount(items) mustEqual Discount.totalDiscount(items.reverse)
+      }
     }
   }
 

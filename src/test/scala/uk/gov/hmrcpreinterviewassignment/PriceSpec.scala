@@ -1,30 +1,51 @@
 package uk.gov.hmrcpreinterviewassignment
 
-import org.specs2.mutable._
+import org.specs2.mutable.Specification
+import org.specs2.ScalaCheck
+import org.scalacheck.{Prop, Gen}
 
-
-class PriceSpec extends Specification {
+class PriceSpec extends Specification with ScalaCheck {
+  val itemsGenerator = Gen.sized { size => Gen.listOfN(size, Gen.oneOf(APPLE, ORANGE)) }
 
   "Price calculate totalPrice" should {
-    "be 0 for an empty shopping cart" in {
-      Price.totalPrice(List()) must beEqualTo(0)
+    "is the sum of the price for the apples and the price for the oranges" in {
+      Prop.forAll(itemsGenerator) { items: List[Item] =>
+        Price.totalPrice(items) mustEqual Price.totalPrice(items.filter(_ == APPLE)) + Price.totalPrice(items.filter(_ == ORANGE))
+      }
     }
 
-    "be 60p for one apple" in {
-      Price.totalPrice(List(APPLE)) must beEqualTo(60)
+    "of a basket of apples is the number of apples by 60p" in {
+      val applesGenerator = Gen.sized { size => List.fill(size)(APPLE) }
+      Prop.forAll(applesGenerator) { apples: List[Item] =>
+        Price.totalPrice(apples) mustEqual apples.size * 60
+      }
     }
 
-    "be 25p for one orange" in {
-      Price.totalPrice(List(ORANGE)) must beEqualTo(25)
+    "of a basket of oranges is the number of oranges by 25p" in {
+      val orangesGenerator = Gen.sized { size => List.fill(size)(ORANGE) }
+      Prop.forAll(orangesGenerator) { apples: List[Item] =>
+        Price.totalPrice(apples) mustEqual apples.size * 25
+      }
     }
 
-    "be 180p for 3 apples" in {
-      Price.totalPrice(List(APPLE, APPLE, APPLE)) must beEqualTo(180)
+    "is independent of the order of the items" in {
+      Prop.forAll(itemsGenerator) { items: List[Item] =>
+        Price.totalPrice(items) mustEqual Price.totalPrice(items.reverse)
+      }
     }
 
-    "be 205p for 3 aples and one orange" in {
-      Price.totalPrice(List(APPLE, APPLE, ORANGE, APPLE)) must beEqualTo(205)
+    "and associative" in {
+      val genTuples: Gen[(List[Item], List[Item])] = for {
+        a <- itemsGenerator
+        b <- itemsGenerator
+      } yield (a, b)
+
+      Prop.forAll(genTuples) {
+        case (items: List[Item], items2: List[Item])  =>
+          Price.totalPrice(items) + Price.totalPrice(items2) mustEqual Price.totalPrice(items ++ items2)
+      }
     }
+
   }
 
 }
